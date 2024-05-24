@@ -28,7 +28,7 @@
 ### GET SESSION ID
 - Click here to get your SESSION_ID
    <br>
-<a href='https://session.alpha-md.rf.gd/' target="_blank"><img alt='GET SESSION' src='https://img.shields.io/badge/SCAN-QR-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=black&color=black'/></a>
+<a href='https://qr.alpha-md.rf.gd/' target="_blank"><img alt='GET SESSION' src='https://img.shields.io/badge/SCAN-QR-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=black&color=black'/></a>
 
 ***
 ### INFORMATION (BOT WON'T WORK WITHOUT THIS)
