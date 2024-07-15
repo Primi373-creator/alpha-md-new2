@@ -1,4 +1,4 @@
-/node_modules
-/gitpod.yml
-/database.db
-/.env
+node_modules
+database.db
+.env
+auth_info_baileys

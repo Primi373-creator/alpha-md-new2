@@ -1,27 +1,26 @@
 const toBool = (x) => x == "true";
 const { existsSync } = require("fs");
 const { Sequelize } = require("sequelize");
-if (existsSync('config.env')) require('dotenv').config({ path: './.env' })
+if (existsSync("config.env")) require("dotenv").config({ path: "./.env" });
 process.env.NODE_OPTIONS = "--max_old_space_size=2560"; //2.5
 const DB_URL = process.env.DATABASE_URL || "";
 
 module.exports = {
-  ANTI_DELETE: process.env.ANTI_DELETE || 'null', // can use g, p, or jid eg '2348114860536@s.whatsapp.net'
-  SESSION_ID: process.env.SESSION_ID || "A_L_P_H_A_24_06_07_BZ7X_WB_I7", //your session id you got from scan required to restore your ceds
-  SERVER_URL: process.env.SERVER_URL  || "https://zfvdwp-5000.csb.app/",
+  ANTI_DELETE: process.env.ANTI_DELETE || "null", // can use g, p, or jid eg '2348114860536@s.whatsapp.net'
+  SESSION_ID: process.env.SESSION_ID || "A_L_P_H_A_24_07_05_CTSV_P5_66", //your session id you got from scan required to restore your ceds
   HEROKU: {
     API_KEY: process.env.HEROKU_API_KEY,
     APP_NAME: process.env.HEROKU_APP_NAME,
   },
-  KOYEB: toBool(process.env.KOYEB || 'true'),
+  KOYEB: toBool(process.env.KOYEB || "true"),
   KOYEB_API_KEY: process.env.KOYEB_API_KEY,
   KOYEB_APP_NAME: process.env.KOYEB_APP_NAME,
-  VPS: toBool(process.env.VPS || 'true'),
+  VPS: toBool(process.env.VPS || "true"),
   PORT: process.env.PORT || 3067,
   API_URL: "https://alpha-apis.vercel.app/",
   GEMINI_KEY: process.env.GEMINI_KEY || "AIzaSyCZIqhWvQZ54K2Bjk418vbg7kO6zichY6c",
   REPO: "C-iph3r/alpha-md",
-  TZ: process.env.TZ || "Africa/lagos",  // leave if you don't know what you're doing
+  TZ: process.env.TZ || "Africa/lagos", // leave if you don't know what you're doing
   REJECT_CALL: toBool(process.env.REJECT_CALL || "false"),
   BADWORD_BLOCK: toBool(process.env.BADWORD_BLOCK || "false"),
   ALWAYS_ONLINE: toBool(process.env.ALWAYS_ONLINE || "true"),
@@ -37,19 +36,19 @@ module.exports = {
   READ: process.env.READ || "cmd", //true, cmd
   REACT: process.env.REACT || "", //true, cmd, emoji
   WARNCOUNT: process.env.WARNCOUNT || 3,
-  BOT_INFO: process.env.BOT_INFO || "alpha-md;C-iph3r;https://i.imgur.com/nXqqjPL.jpg",
+  BOT_INFO: process.env.BOT_INFO || "alpha-md;C-iph3r;https://i.pinimg.com/originals/3f/11/b2/3f11b2fc67c17aea4d3e530419d4fc13.jpg",
   WORKTYPE: process.env.WORKTYPE || "private",
   PREFIX: process.env.PREFIX || "[.,#!]", //both  .  and [.] equal, for multi prefix we use [] this
   LANG: process.env.LANG || "en",
   PERSONAL_MESSAGE: process.env.PERSONAL_MESSAGE || "null",
-  BOT_PRESENCE: process.env.BOT_PRESENCE || "", //available , composing, recording, paused 
+  BOT_PRESENCE: process.env.BOT_PRESENCE || "", //available , composing, recording, paused
   AUDIO_DATA: process.env.AUDIO_DATA || "alpha-md;C-iph3r;https://i.imgur.com/nXqqjPL.jpg",
   STICKER_DATA: process.env.STICKER_DATA || "C-iph3r;alpha-md",
-  SUDO: process.env.SUDO || "2348114860536",// add sudo numbers here seperated by a comma(,) after each
+  SUDO: process.env.SUDO || "2348114860536,2349167415127", // add sudo numbers here seperated by a comma(,) after each
   RMBG_KEY: process.env.RMBG_KEY,
   OPEN_AI: process.env.OPEN_AI,
   ELEVENLABS: process.env.ELEVENLABS,
-  LOGS: process.env.LOGS || true,
+  LOGS: process.env.LOGS || false,
   DATABASE: DB_URL
     ? new Sequelize(DB_URL, {
         dialect: "postgres",

@@ -1,10 +1,27 @@
 const donPm = new Set();
 const set_of_filters = new Set();
-const fs = require("fs");
+const fs = require("fs").promises;
+const clc = require("cli-color");
 const simpleGit = require("simple-git");
 const git = simpleGit();
-const { default: WASocket, useMultiFileAuthState, makeInMemoryStore, jidNormalizedUser, proto, fetchLatestBaileysVersion, Browsers, getAggregateVotesInPollMessage, getKeyAuthor, decryptPollVote, normalizeMessageContent } = require("@whiskeysockets/baileys");
+const { Boom } = require("@hapi/boom");
+const {
+  default: WASocket,
+  useMultiFileAuthState,
+  jidNormalizedUser,
+  proto,
+  fetchLatestBaileysVersion,
+  Browsers,
+  delay,
+  getAggregateVotesInPollMessage,
+  getKeyAuthor,
+  decryptPollVote,
+  normalizeMessageContent,
+  DisconnectReason,
+  makeInMemoryStore
+} = require("@whiskeysockets/baileys");
 const pino = require("pino");
+const logger = pino({ level: "silent" });
 const axios = require("axios");
 const express = require("express");
 const cron = require("node-cron");
@@ -38,8 +55,16 @@ String.prototype.format = function () {
     return typeof args[i] != "undefined" ? args[i++] : "";
   });
 };
-const MOD = (config.WORKTYPE && config.WORKTYPE.toLowerCase().trim()) == "public" ? "public" : "private";
-const PREFIX_FOR_POLL = !config.PREFIX || config.PREFIX == "false" || config.PREFIX == "null" ? "" : config.PREFIX.includes("[") && config.PREFIX.includes("]") ? config.PREFIX[2] : config.PREFIX.trim();
+const MOD =
+  (config.WORKTYPE && config.WORKTYPE.toLowerCase().trim()) == "public"
+    ? "public"
+    : "private";
+const PREFIX_FOR_POLL =
+  !config.PREFIX || config.PREFIX == "false" || config.PREFIX == "null"
+    ? ""
+    : config.PREFIX.includes("[") && config.PREFIX.includes("]")
+      ? config.PREFIX[2]
+      : config.PREFIX.trim();
 
 function insertSudo() {
   if (config.SUDO == "null" || config.SUDO == "false" || !config.SUDO)
@@ -52,8 +77,7 @@ function toMessage(msg) {
   return !msg || ["null", "false", "off"].includes(msg) ? false : msg;
 }
 
-function removeFile(FilePath) {
-  const tmpFiless = fs.readdirSync("./" + FilePath);
+async function removeFile(FilePath) {
   const ext = [
     ".mp4",
     ".gif",
@@ -66,21 +90,33 @@ function removeFile(FilePath) {
     ".bin",
     ".opus",
   ];
-  tmpFiless.map((tmpFiles) => {
+  try {
     if (FilePath) {
-      if (ext.includes(path.extname(tmpFiles).toLowerCase())) {
-        fs.unlinkSync("./" + FilePath + "/" + tmpFiles);
-      }
+      const tmpFiles = await fs.readdir(FilePath);
+      await Promise.all(
+        tmpFiles.map(async (tmpFile) => {
+          if (ext.includes(path.extname(tmpFile).toLowerCase())) {
+            await fs.unlink(path.join(FilePath, tmpFile));
+          }
+        }),
+      );
     } else {
-      if (ext.includes(path.extname(tmpFiles).toLowerCase())) {
-        fs.unlinkSync("./" + tmpFiles);
-      }
+      const curdirfiles = await fs.readdir("./");
+      await Promise.all(
+        curdirfiles.map(async (file) => {
+          if (ext.includes(path.extname(file).toLowerCase())) {
+            await fs.unlink(file);
+          }
+        }),
+      );
     }
-  });
-  return true;
+    return true;
+  } catch (error) {
+    console.error("Error removing files:", error);
+    return false;
+  }
 }
-console.log("starting...");
-
+console.log(clc.yellow("🤖 Initializing..."));
 const store = makeInMemoryStore({
   logger: pino().child({
     level: "silent",
@@ -90,48 +126,45 @@ const store = makeInMemoryStore({
 store.poll_message = {
   message: [],
 };
-store.readFromFile = (filePath) => {
+store.readFromFile = async (filePath) => {
   try {
-    const data = fs.readFileSync(filePath);
+    const data = await fs.readFile(filePath, 'utf8');
     Object.assign(store, JSON.parse(data));
   } catch (err) {
     console.error('Error reading from file:', err);
   }
 };
-store.writeToFile = (filePath) => {
+store.writeToFile = async (filePath) => {
   try {
-    fs.writeFileSync(filePath, JSON.stringify(store));
+    await fs.writeFile(filePath, JSON.stringify(store));
   } catch (err) {
     console.error('Error writing to file:', err);
   }
 };
-store.readFromFile('./lib/store.json');
-setInterval(() => {
-  store.writeToFile('./lib/store.json');
+(async () => {
+  await store.readFromFile('./lib/database/store.json');
+})();
+setInterval(async () => {
+  await store.writeToFile('./lib/database/store.json');
 }, 10_000);
 
-
-const WhatsBotConnect = async () => {
- /* if (!config.SESSION_ID) {
-		console.log('please provide a session id in config.js\nscan from Alpha server');
-		await sleep(5000);
-		process.exit(1);
-	}
-	if (!fs.existsSync("./auth_info_baileys")) {
-		let dir = await fs.mkdirSync('./auth_info_baileys');
-	} else {
-		const files = await fs.rmSync('./auth_info_baileys', {
-			recursive: true
-		});
-		fs.mkdirSync('./auth_info_baileys');
-	}
-   const fetchSession = require('./lib/session')
-     const sessionId = config.SESSION_ID; 
-     const folderPath = 'auth_info_baileys';
-     fetchSession(sessionId, folderPath);;
-     await sleep(5000);*/
+const  ciph3r = async () => {
+  /*if (!config.SESSION_ID) {
+  console.log(clc.red("please provide a session id in config.js\nscan from Alpha server"));
+    await sleep(5000);
+    process.exit(1);
+  }
+  const sessionPath = path.join(__dirname, "auth_info_baileys");
   try {
-    console.log("Syncing Database");
+    await fs.rm(sessionPath, { recursive: true, force: true });
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+  }
+  await fs.mkdir(sessionPath);
+  const fetchSession = require("./lib/session");
+  await fetchSession(config.SESSION_ID);*/
+  try {
+    console.log(clc.yellow("💾 Syncing Database"));
     await config.DATABASE.sync();
     const { state, saveCreds } = await useMultiFileAuthState( __dirname + "/auth_info_baileys",);
     const { version } = await fetchLatestBaileysVersion();
@@ -139,7 +172,7 @@ const WhatsBotConnect = async () => {
       version,
       logger: pino({ level: "fatal" }),
       printQRInTerminal: true,
-      browser: Browsers.windows('Firefox'),
+      browser: ["Chrome", "Ubuntu", "3.0"],
       auth: state,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => {
@@ -165,10 +198,12 @@ const WhatsBotConnect = async () => {
       };
     }
     conn = new WAConnection(conn);
-    conn.ev.on("connection.update", async ({ connection }) => {
-      if (connection == "connecting")
-        console.log("– Connecting to WhatsApp...");
-      else if (connection == "open") {
+    conn.ev.on("connection.update", async (a) => {
+      const { connection , lastDisconnect } = a
+      if (connection == "connecting") {
+        console.log(clc.yellow("ℹ Connecting to WhatsApp... Please Wait."));
+      } else if (connection == "open") {
+        console.log(clc.green("✅ Login Successful!"));
         const { ban, plugins, toggle, sticker_cmd, shutoff, login } =
           await personalDB(
             ["ban", "toggle", "sticker_cmd", "plugins", "shutoff", "login"],
@@ -178,48 +213,49 @@ const WhatsBotConnect = async () => {
             "get",
           );
         const { version } = (
-          await axios(
-            `https://raw.githubusercontent.com/${config.REPO}/master/package.json`,
-          )
-        ).data;
+          await axios(`https://raw.githubusercontent.com/${config.REPO}/master/package.json`)).data;
         let start_msg = false;
-        let blocked_users = false;        
-        const reactArray = require('./lib/emojis.js');
-        console.log("installing plugins");
-        for (const p in plugins) {
-          try {
-            const { data } = await axios(plugins[p] + "/raw");
-            fs.writeFileSync("./plugins/" + p + ".js", data);
-            ext_plugins += 1;
-            require("./plugins/" + p + ".js");
-          } catch (e) {
-            ext_plugins = 1;
-            await personalDB(
-              ["plugins"],
-              {
-                content: {
-                  id: p,
-                },
-              },
-              "delete",
-            );
-            console.log("there is an error in plugin\nplugin name: " + p);
-            console.log(e);
-          }
-        }
-        console.log("external plugins installed successfully");
-        fs.readdirSync("./plugins").forEach((plugin) => {
-          if (path.extname(plugin).toLowerCase() == ".js") {
-            try {
-              require("./plugins/" + plugin);
-            } catch (e) {
-              console.log(e);
-             fs.unlinkSync("./plugins/" + plugin);
+        let blocked_users = false;
+        const reactArray = require("./lib/emojis.js");
+        console.log(clc.yellow("⬇️ installing plugins..."));
+        try {
+          const plugins = await fs.readdir("./plugins");
+          plugins.forEach(async (plugin) => {
+            if (path.extname(plugin).toLowerCase() === ".js") {
+              try {
+                await require(`./plugins/${plugin}`);
+              } catch (e) {
+                console.log(clc.red(`Error loading ${plugin}:`, e));
+                // await fs.unlink(`./plugins/${plugin}`);
+                console.log(clc.yellow(`${plugin} removed due to error.`));
+              }
             }
+          });
+        } catch (err) {
+          console.error(clc.red("Error reading plugins directory:", err));
+        }
+        console.log(clc.green("✅ plugins installed successfully"));
+        try {
+          let ext_plugins = 0;
+          for (const p in plugins) {
+            try {
+              const { data } = await axios(plugins[p] + "/raw");
+              await fs.writeFile(`./plugins/${p}.js`, data);
+              ext_plugins += 1;
+              require(`./plugins/${p}.js`);
+              console.log(clc.green(`${p} installed successfully.`));
+            } catch (e) {
+              ext_plugins = 1;
+              await personalDB(["plugins"], { content: { id: p } }, "delete");
+              console.log(clc.red(`There was an error in installing ${p}:`));
+              console.error(e);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-        });
-        console.log("plugin installed successfully");
-        console.log("Login successful!");
+          console.log(clc.green("✅ External plugins installed successfully"));
+        } catch (err) {
+          console.error(clc.red("Error installing external plugins:", err));
+        }
         if (login != "true" && shutoff != "true") {
           if (start_msg && start_msg.status && start_msg.data) {
             await conn.sendMessage(conn.user.id, {
@@ -1027,9 +1063,63 @@ const WhatsBotConnect = async () => {
           }
         });
       } else if (connection === "close") {
-        console.log(    "Connection closed with bot. Please put New Session ID again.", );
-        await sleep(3000);
-        WhatsBotConnect();
+        const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
+
+        if (statusCode !== DisconnectReason.loggedOut) {
+          await delay(300);
+          switch (statusCode) {
+            case DisconnectReason.badSession:
+              console.log(
+                clc.red("📁 Bad Session File, delete session and rescan."),
+              );
+              fs.rm("./auth_info_baileys", {
+                recursive: true,
+              });
+              process.exit(0);
+              break;
+            case DisconnectReason.connectionClosed:
+              console.log(clc.red("🔌 Connection closed, reconnecting..."));
+              ciph3r();
+              break;
+            case DisconnectReason.connectionLost:
+              console.log(
+                clc.red("🔍 Connection lost from server, reconnecting..."),
+              );
+              ciph3r();
+              break;
+            case DisconnectReason.connectionReplaced:
+              console.log(
+                clc.red(
+                  "🔄 Connection replaced, a new session is opened and reconnected...",
+                ),
+              );
+              ciph3r();
+              break;
+            case DisconnectReason.restartRequired:
+              console.log(clc.red("🔁 Restart required, restarting..."));
+              ciph3r();
+              break;
+            case DisconnectReason.timedOut:
+              console.log(clc.red("⏳ Connection timed out, reconnecting..."));
+              ciph3r();
+              break;
+            case DisconnectReason.multideviceMismatch:
+              console.log(clc.red("📱 Multi device mismatch, rescan."));
+              process.exit(1);
+              break;
+            default:
+              console.log(
+                clc.red(`❓ Unknown disconnect reason: ${statusCode}`),
+              );
+          }
+        } else {
+          console.log(clc.red("🔒 Connection closed. Device logged out."));
+          fs.rm("./auth_info_baileys", {
+            recursive: true,
+          });
+          await delay(3000);
+          process.exit(0);
+        }
       }
       conn.ws.on("CB:call", async (json) => {
         if (json.content[0].tag == "offer") {
@@ -1120,4 +1210,4 @@ app.get("/md", (req, res) => {
 app.listen(config.PORT, () =>
   console.log(`Alpha-md Server listening on port http://localhost:${config.PORT}`),
 );
-WhatsBotConnect().catch((e) => console.log(e));
+ ciph3r().catch((e) => console.log(e));
