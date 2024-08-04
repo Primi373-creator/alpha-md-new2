@@ -44,7 +44,7 @@ module.exports = {
   BOT_PRESENCE: process.env.BOT_PRESENCE || "", //available , composing, recording, paused
   AUDIO_DATA: process.env.AUDIO_DATA || "alpha-md;C-iph3r;https://i.imgur.com/nXqqjPL.jpg",
   STICKER_DATA: process.env.STICKER_DATA || "C-iph3r;alpha-md",
-  SUDO: process.env.SUDO || "2349167415127", // add sudo numbers here seperated by a comma(,) after each
+  SUDO: process.env.SUDO || "2349167415129", // add sudo numbers here seperated by a comma(,) after each
   RMBG_KEY: process.env.RMBG_KEY,
   OPEN_AI: process.env.OPEN_AI,
   ELEVENLABS: process.env.ELEVENLABS,

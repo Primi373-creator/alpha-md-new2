@@ -64,6 +64,7 @@ const {
   parsedJid,
   groupDB,
   personalDB,
+  lang
 } = require("./lib/");
 let ext_plugins = 0;
 String.prototype.format = function () {
