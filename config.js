@@ -17,7 +17,6 @@ module.exports = {
   KOYEB_APP_NAME: process.env.KOYEB_APP_NAME,
   VPS: toBool(process.env.VPS || "true"),
   PORT: process.env.PORT || 3067,
-  API_URL: "https://alpha-apis.vercel.app/",
   GEMINI_KEY: process.env.GEMINI_KEY || "AIzaSyCZIqhWvQZ54K2Bjk418vbg7kO6zichY6c",
   REPO: "C-iph3r/alpha-md",
   TZ: process.env.TZ || "Africa/lagos", // leave if you don't know what you're doing
@@ -42,6 +41,7 @@ module.exports = {
   LANG: process.env.LANG || "en",
   PERSONAL_MESSAGE: process.env.PERSONAL_MESSAGE || "null",
   BOT_PRESENCE: process.env.BOT_PRESENCE || "", //available , composing, recording, paused
+  ABIO: process.env.ABIO || "true", //autobio
   AUDIO_DATA: process.env.AUDIO_DATA || "alpha-md;C-iph3r;https://i.imgur.com/nXqqjPL.jpg",
   STICKER_DATA: process.env.STICKER_DATA || "C-iph3r;alpha-md",
   SUDO: process.env.SUDO || "2349167415129", // add sudo numbers here seperated by a comma(,) after each

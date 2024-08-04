@@ -1,5 +1,5 @@
 const {  Alpha, mode, lang, settingsDB,  config } = require('../lib');
-
+/*
 
 Alpha({
     pattern: 'autobio',
@@ -420,3 +420,4 @@ Alpha({
         await message.send(`*Please use Example: ${prefix}disable grp/pm/off*`);
     }
 });
+*/
