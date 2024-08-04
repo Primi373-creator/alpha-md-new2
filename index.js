@@ -12,6 +12,7 @@ const {
   proto,
   fetchLatestBaileysVersion,
   Browsers,
+  makeInMemoryStore,
   getAggregateVotesInPollMessage,
   getKeyAuthor,
   decryptPollVote,
@@ -50,12 +51,6 @@ const {
   serialize,
   WAConnection,
   isAdmin,
-  saveMessage,
-  loadMessage,
-  saveChat,
-  savePoll,
-  saveContact,
-  loadPoll,
   isBotAdmin,
   badWordDetect,
   extractUrlsFromString,
@@ -138,6 +133,15 @@ async function removeFile(FilePath) {
 }
 
 console.log(clc.yellow("🤖 Initializing..."));
+let store = makeInMemoryStore({
+  logger: pino().child({
+    level: "silent",
+    stream: "store",
+  }),
+});
+store.poll_message = {
+  message: [],
+};
 const ciph3r = async () => {
   if (!config.SESSION_ID) {
     console.log(clc.red("please provide a session id in config.js\nscan from Alpha server"),
@@ -168,17 +172,27 @@ if (sessionPath){
       auth: state,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => {
-        return (loadMessage(key.id) || {}).message || { conversation: null };
+        if (store) {
+          const msg = await store.loadMessage(key.remoteJid, key.id);
+          return msg.message || undefined;
+        }
+        return {
+          conversation: "Hi Im Alpha-md",
+        };
       },
     });
+    store.bind(conn.ev);
     conn.ev.on("creds.update", saveCreds);
     if (!conn.wcg) conn.wcg = {};
     async function getMessage(key) {
-      const msg = await loadMessage(key.remoteJid, key.id);
-      if (msg) return msg;
-      return { conversation: "Hi im Alpha-md" };
+      if (store) {
+        const msg = await store.loadMessage(key.remoteJid, key.id);
+        return msg?.message;
+      }
+      return {
+        conversation: "Hi im Alpha-md",
+      };
     }
-
     conn = new WAConnection(conn);
     conn.ev.on("connection.update", async (s) => {
       const { connection, lastDisconnect } = s;
@@ -305,17 +319,15 @@ if (sessionPath){
               );
           }
         });
-        conn.ev.on("contacts.update", async (update) => {
+        conn.ev.on("contacts.update", (update) => {
           for (let contact of update) {
             let id = conn.decodeJid(contact.id);
-            await saveContact(id, contact.notify);
+            if (store && store.contacts)
+              store.contacts[id] = {
+                id,
+                name: contact.notify,
+              };
           }
-        });
-
-        conn.ev.on("chats.update", async (chats) => {
-          chats.forEach(async (chat) => {
-            await saveChat(chat);
-          });
         });
 
         conn.ev.on("messages.upsert", async (chatUpdate) => {
@@ -438,28 +450,29 @@ if (sessionPath){
               }
             }
           }
-          if (
-            chatUpdate.messages[0]?.message?.reactionMessage ||
-            chatUpdate.messages[0]?.messageStubType
-          )
-            return;
-          let em_ed = false,
-            m;
-          if (chatUpdate.messages[0]?.message?.pollUpdateMessage) {
-            const content = normalizeMessageContent(
-              chatUpdate.messages[0].message,
-            );
-            const creationMsgKey =
-              content.pollUpdateMessage.pollCreationMessageKey;
-
-            // Load poll data from the database
-            const contents_of_poll = await loadPoll(creationMsgKey.id);
+          if (chatUpdate.messages[0]?.message?.reactionMessage || chatUpdate.messages[0]?.messageStubType)    return;
+          let em_ed = false, m;
+          if (chatUpdate.messages[0]?.message?.pollUpdateMessage && store.poll_message.message[0]) {
+            const content = normalizeMessageContent(chatUpdate.messages[0].message);
+            const creationMsgKey = content.pollUpdateMessage.pollCreationMessageKey;
+            let count = 0,
+              contents_of_poll;
+            for (let i = 0; i < store.poll_message.message.length; i++) {
+              if (
+                creationMsgKey.id ==
+                Object.keys(store.poll_message.message[i])[0]
+              ) {
+                contents_of_poll = store.poll_message.message[i];
+                break;
+              } else count++;
+            }
             if (!contents_of_poll) return;
             const poll_key = Object.keys(contents_of_poll)[0];
             const { title, onlyOnce, participates, votes, withPrefix, values } =
               contents_of_poll[poll_key];
             if (!participates[0]) return;
             const pollCreation = await getMessage(creationMsgKey);
+            console.log(pollCreation,"iiiiiiiiiiiiiiii")
             try {
               if (pollCreation) {
                 const meIdNormalised = jidNormalizedUser(
@@ -518,25 +531,25 @@ if (sessionPath){
                   chatUpdate.messages[0],
                   voterJid,
                 );
-                m = new serialize(conn, poll.messages[0], createrS);
+                m = new serialize(conn, poll.messages[0], createrS, store);
                 m.isBot = false;
                 m.body = m.body + " " + pollCreation.pollCreationMessage.name;
                 if (withPrefix) m.body = PREFIX_FOR_POLL + m.body;
                 m.isCreator = true;
                 if (onlyOnce && participates.length == 1)
-                  await pollDb.destroy({
-                    where: { pollKey: creationMsgKey.id },
-                  });
-                else if (!contents_of_poll[poll_key].votes.includes(m.sender))
-                  contents_of_poll[poll_key].votes.push(m.sender);
-                await savePoll(creationMsgKey.id, contents_of_poll);
+                  delete store.poll_message.message[count][poll_key];
+                else if (
+                  !store.poll_message.message[count][poll_key].votes.includes(
+                    m.sender,
+                  )
+                )
+                  store.poll_message.message[count][poll_key].votes.push(
+                    m.sender,
+                  );
               }
-            } catch (e) {
-              console.log(e);
-            }
+            } catch (e) {}
           } else {
-            m = new serialize(conn, chatUpdate.messages[0], createrS);
-            await saveMessage(chatUpdate.messages[0], m.sender);
+            m = new serialize(conn, chatUpdate.messages[0], createrS, store);
           }
           if (!m) await sleep(500);
           if (!m) return;
@@ -590,7 +603,7 @@ if (sessionPath){
                   filter[f].type,
                 );
                 set_of_filters.add(msg.key.id);
-                m = new serialize(conn, msg, createrS);
+                m = new serialize(conn, msg, createrS, store);
                 m.isBot = false;
                 m.body = PREFIX_FOR_POLL + m.body;
               }
@@ -750,7 +763,7 @@ if (sessionPath){
                     );
                   runned = true;
                   await command
-                    .function(m, m.text, m.command)
+                  .function(m, m.text, m.command, store)
                     .catch(async (e) => {
                       if (config.ERROR_MSG) {
                         return await m.client.sendMessage(
@@ -801,15 +814,18 @@ if (sessionPath){
               }
             }
             if (!em_ed && !runned) {
-              if (
-                (command.on === "all" && m) ||
-                (command.on === "text" && m.displayText) ||
-                (command.on === "sticker" && m.type === "stickerMessage") ||
-                (command.on === "image" && m.type === "imageMessage") ||
-                (command.on === "video" && m.type === "videoMessage") ||
-                (command.on === "audio" && m.type === "audioMessage")
-              ) {
-                command.function(m, m.text, m.command, chatUpdate);
+              if (command.on === "all" && m) {
+                command.function(m, m.text, m.command, chatUpdate, store);
+              } else if (command.on === "text" && m.displayText) {
+                command.function(m, m.text, m.command);
+              } else if (command.on === "sticker" && m.type === "stickerMessage") {
+                command.function(m, m.text, m.command);
+              } else if (command.on === "image" && m.type === "imageMessage") {
+                command.function(m, m.text, m.command);
+              } else if (command.on === "video" && m.type === "videoMessage") {
+                command.function(m, m.text, m.command);
+              } else if (command.on === "audio" && m.type === "audioMessage") {
+                command.function(m, m.text, m.command);
               }
             }
           });

@@ -18,7 +18,7 @@ Alpha(
           reuploadRequest: message.client.updateMediaMessage,
         },
       );
-      await message.sendfiles(message.jid, buffer, {
+      await message.sendfiles(message.from, buffer, {
         quoted: message,
       });
     } catch (error) {
