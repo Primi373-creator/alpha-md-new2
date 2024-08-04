@@ -705,17 +705,11 @@ if (sessionPath){
             if (ban && ban.includes(m.jid) && !command.root) return;
             let runned = false;
             if (em_ed == "active") em_ed = false;
-           try {
-            let dataa = await settingsDB(["worktype"], { id: global.configId }, "get");
-            if (dataa.worktype === "public" && command.fromMe === true) {
+            if (MOD === "public" && command.fromMe === true) {
               return;
-            } else if (dataa.worktype ===  "private" && !m.isCreator) {
+            } else if (MOD ===  "private" && !m.isCreator) {
               return;
-            }
-           }
-catch(e){
-
-}            
+            }        
             for (const t in toggle) {
               if (
                 toggle[t].status != "false" &&
