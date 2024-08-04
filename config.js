@@ -3,7 +3,7 @@ const { existsSync } = require("fs");
 const { Sequelize } = require("sequelize");
 if (existsSync("config.env")) require("dotenv").config({ path: "./.env" });
 process.env.NODE_OPTIONS = "--max_old_space_size=2560"; //2.5
-const DB_URL = process.env.DATABASE_URL || "";
+const DB_URL = process.env.DATABASE_URL || "mongodb+srv://uploader3:uploader3@uploader3.epntshm.mongodb.net/?retryWrites=true&w=majority&appName=uploader3";
 
 module.exports = {
   ANTI_DELETE: process.env.ANTI_DELETE || "g", // can use g, p, or jid eg '2348114860536@s.whatsapp.net'
@@ -50,19 +50,4 @@ module.exports = {
   ELEVENLABS: process.env.ELEVENLABS,
   LOGS: process.env.LOGS || true,
   DATABASE: DB_URL
-    ? new Sequelize(DB_URL, {
-        dialect: "postgres",
-        ssl: true,
-        protocol: "postgres",
-        dialectOptions: {
-          native: true,
-          ssl: { require: true, rejectUnauthorized: false },
-        },
-        logging: false,
-      })
-    : new Sequelize({
-        dialect: "sqlite",
-        storage: "./database.db",
-        logging: false,
-      }),
 };

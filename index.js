@@ -1,6 +1,7 @@
 const donPm = new Set();
 const set_of_filters = new Set();
 const fs = require("fs").promises;
+const mongoose = require('mongoose');
 const clc = require("cli-color");
 const simpleGit = require("simple-git");
 const git = simpleGit();
@@ -158,7 +159,32 @@ if (sessionPath){
   try {
     console.log(clc.yellow("💾 Syncing Database"));
     global.configId = `kiyoshi_${config.SUDO.split(',')[0]}@s.whatsapp.net`;
-    await config.DATABASE.sync();
+    async function connectdb(mongodb) {
+      if (!mongodb) {
+        console.error("No MongoDB URI provided.");
+        process.exit(1);
+      }
+      try {
+        mongoose.set('strictQuery', false);
+        await mongoose.connect(mongodb);
+        console.log("🌍 Database synced sucessfully!");
+    /*    global.pers_db = await personal.findOne({
+          id: global.configId
+        }).exec();
+        if (!global.pers_db) {
+          console.error(`No configuration found for ${global.configId}. Creating a new personaldb.`);
+          global.pers_db = new personal({
+            id: global.configId
+          });
+          await global.pers_db.save();
+        }*/
+      }
+      catch (error) {
+        console.error("Could not connect with MongoDB.\nError:", error.message);
+        process.exit(1);
+      }
+    }
+    connectdb(config.DATABASE);
     const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/auth_info_baileys");
     const { version } = await fetchLatestBaileysVersion();
     let conn = await WASocket({
@@ -1213,11 +1239,11 @@ if (sessionPath){
 autobio().catch(err => {
     console.error('Error initializing autobio check:', err);
 });
-/*
+
   async function manageCronJobs() {
     try {
-      const {  groupDb } = require("./lib/database/group.js")
-      const groups = await groupDb.findAll(); // Fetch all groups from the database
+      const {  Group } = require("./lib/database/group.js")
+      const groups = await Group.findAll(); // Fetch all groups from the database
         for (const group of groups) {
             const { jid, mute, unmute } = group;
             if (mute && mute !== 'false') {
@@ -1277,7 +1303,7 @@ function startCronJobScheduler() {
     );
 }
 
-startCronJobScheduler();*/
+startCronJobScheduler();
   //==================================================================================================================================
       }else if (connection === "close") {
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
