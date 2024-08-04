@@ -1,4 +1,4 @@
-const {  Alpha, mode, lang, settingsDB,  config } = require('../lib');
+const {  Alpha, mode, lang, settingsDB,  PREFIX } = require('../lib');
 
 
 Alpha({
@@ -153,7 +153,7 @@ Alpha({
             await message.send(`*Bot set to private mode*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}worktype public/private*`);
+        await message.send(`*Please use Example: ${PREFIX}worktype public/private*`);
     }
 });
 
@@ -192,7 +192,7 @@ Alpha({
             await message.send(`*Anti call turned off*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}anticall reject/block/off*`);
+        await message.send(`*Please use Example: ${PREFIX}anticall reject/block/off*`);
     }
 });
 
@@ -252,7 +252,7 @@ Alpha({
             await message.send(`*WhatsApp presence turned off*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}wapresence unavailable/available/composing/recording/paused/off*`);
+        await message.send(`*Please use Example: ${PREFIX}wapresence unavailable/available/composing/recording/paused/off*`);
     }
 });
 
@@ -291,7 +291,7 @@ Alpha({
             await message.send(`*Auto reaction turned off*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}areact all/cmd/off*`);
+        await message.send(`*Please use Example: ${PREFIX}areact all/cmd/off*`);
     }
 });
 
@@ -330,7 +330,7 @@ Alpha({
             await message.send(`*Auto read turned off*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}readmsg all/cmd/off*`);
+        await message.send(`*Please use Example: ${PREFIX}readmsg all/cmd/off*`);
     }
 });
 
@@ -376,7 +376,7 @@ Alpha({
             await message.send(`*Anti-delete turned off*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}antidelete g/p/jid : 3742...3@s.whatsapp.net/off*`);
+        await message.send(`*Please use Example: ${PREFIX}antidelete g/p/jid : 3742...3@s.whatsapp.net/off*`);
     }
 });
 
@@ -417,6 +417,6 @@ Alpha({
             await message.send(`*Bot enabled for all chats.*`);
         }
     } else {
-        await message.send(`*Please use Example: ${prefix}disable grp/pm/off*`);
+        await message.send(`*Please use Example: ${PREFIX}disable grp/pm/off*`);
     }
 });
