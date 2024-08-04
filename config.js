@@ -16,7 +16,7 @@ module.exports = {
   KOYEB_API_KEY: process.env.KOYEB_API_KEY,
   KOYEB_APP_NAME: process.env.KOYEB_APP_NAME,
   VPS: toBool(process.env.VPS || "true"),
-  PORT: process.env.PORT || 3067,
+  PORT: process.env.PORT || 30677,
   GEMINI_KEY: process.env.GEMINI_KEY || "AIzaSyCZIqhWvQZ54K2Bjk418vbg7kO6zichY6c",
   REPO: "C-iph3r/alpha-md",
   TZ: process.env.TZ || "Africa/lagos", // leave if you don't know what you're doing

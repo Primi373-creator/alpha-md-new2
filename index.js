@@ -218,7 +218,6 @@ if (sessionPath){
         console.log(clc.green("✅ Login Successful!"));
         const { ban, plugins, toggle, sticker_cmd, shutoff, login } = await personalDB(["ban", "toggle", "sticker_cmd", "plugins", "shutoff", "login"], { content: {} }, "get",);
         const { version } = (await axios(`https://raw.githubusercontent.com/${config.REPO}/master/package.json`)).data;
-        console.log(userdata)
         let start_msg = false, blocked_users = false;
         const reactArray = require("./lib/emojis.js");
         console.log(clc.yellow("⬇️ installing plugins..."));
@@ -706,11 +705,17 @@ if (sessionPath){
             if (ban && ban.includes(m.jid) && !command.root) return;
             let runned = false;
             if (em_ed == "active") em_ed = false;
-            if (MOD == "public" && command.fromMe === true) {
+           try {
+            let dataa = await settingsDB(["worktype"], { id: global.configId }, "get");
+            if (dataa.worktype === "public" && command.fromMe === true) {
               return;
-            } else if (MOD == "private" && !m.isCreator) {
+            } else if (dataa.worktype ===  "private" && !m.isCreator) {
               return;
             }
+           }
+catch(e){
+
+}            
             for (const t in toggle) {
               if (
                 toggle[t].status != "false" &&
@@ -1188,7 +1193,8 @@ if (sessionPath){
 
   //======================================================[ SCHEDULER ]===========================================================================
   async function autobio() {
-    if (userdata.autobio === "true") {
+    let data = await settingsDB(["autobio"], { id: global.configId }, "get" );
+    if (data.autobio === "true") {
         async function updateStatus() {
             const time = moment().tz(config.TZ).format('HH:mm');
             const date = moment().tz(config.TZ).format('DD/MM/YYYY');
