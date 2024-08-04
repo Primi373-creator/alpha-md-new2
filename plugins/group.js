@@ -1021,11 +1021,7 @@ Alpha(
     onlyGroup: true,
   },
   async (message, match) => {
-    const { welcome } = await groupDB(
-      ["welcome"],
-      { jid: message.jid, content: {} },
-      "get",
-    );
+    const { welcome } = await groupDB(["welcome"],{ jid: message.jid, content: {} },  "get",);
     if (match.toLowerCase() == "get") {
       const status = welcome && welcome.status ? welcome.status : "false";
       if (status == "false")

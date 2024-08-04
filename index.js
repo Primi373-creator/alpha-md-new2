@@ -4,6 +4,7 @@ const fs = require("fs").promises;
 const clc = require("cli-color");
 const simpleGit = require("simple-git");
 const git = simpleGit();
+const moment = require('moment-timezone')
 const { Boom } = require("@hapi/boom");
 const {
   default: WASocket,
@@ -70,10 +71,7 @@ String.prototype.format = function () {
     return typeof args[i] != "undefined" ? args[i++] : "";
   });
 };
-const MOD =
-  (config.WORKTYPE && config.WORKTYPE.toLowerCase().trim()) == "public"
-    ? "public"
-    : "private";
+const MOD = (config.WORKTYPE && config.WORKTYPE.toLowerCase().trim()) == "public"  ? "public" : "private";
 const PREFIX_FOR_POLL =
   !config.PREFIX || config.PREFIX == "false" || config.PREFIX == "null"
     ? ""
@@ -159,51 +157,8 @@ if (sessionPath){
    }
   try {
     console.log(clc.yellow("💾 Syncing Database"));
+    global.configId = `kiyoshi_${config.SUDO.split(',')[0]}@s.whatsapp.net`;
     await config.DATABASE.sync();
-    const syncSettings = async () => {
-      try {
-        global.configId = `kiyoshi_${config.SUDO.split(',')[0]}@s.whatsapp.net`;
-        let existingSettings = await settingsDB(
-          [
-            'alwaysonline', 'anticall', 'antidelete', 'auto_read_msg', 'auto_read_status', 
-            'auto_save_status', 'autobio', 'autoreaction', 'disablegrp', 'worktype', 
-            'disablepm', 'tempsudo', 'wapresence'
-          ],
-          { id: global.configId },
-          'get'
-        );
-        if (!existingSettings) {
-          console.log(clc.red(`No configuration found for ${global.configId}. Creating a new settings record.`));
-          const defaultSettings = {
-            alwaysonline: "false", anticall: "reject", antidelete: "false", auto_read_msg: "cmd", 
-            auto_read_status: "true", auto_save_status: "false", autobio: "true", autoreaction: "true", 
-            disablegrp: "false", worktype: "private", disablepm: "false", tempsudo: "", wapresence: "false"
-          };
-          await Promise.all(
-            Object.keys(defaultSettings).map(async (key) => {
-              await settingsDB([key], { id: global.configId, content: defaultSettings[key] }, 'set');
-            })
-          );
-          existingSettings = await settingsDB(
-            [
-              'alwaysonline', 'anticall', 'antidelete', 'auto_read_msg', 'auto_read_status', 
-              'auto_save_status', 'autobio', 'autoreaction', 'disablegrp', 'worktype', 
-              'disablepm', 'tempsudo', 'wapresence'
-            ],
-            { id: global.configId },
-            'get'
-          );
-        }
-    
-        global.pers_db = existingSettings;
-        console.log(clc.green(`Settings synchronized for ${global.configId}`));
-      } catch (error) {
-        console.error(clc.red("Could not connect with the database.\nError:"), clc.red(error.message));
-        process.exit(1);
-      }
-    };
-    
-    syncSettings();
     const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/auth_info_baileys");
     const { version } = await fetchLatestBaileysVersion();
     let conn = await WASocket({
@@ -261,19 +216,10 @@ if (sessionPath){
         console.log(clc.yellow("ℹ Connecting to WhatsApp... Please Wait."));
       } else if (connection == "open") {
         console.log(clc.green("✅ Login Successful!"));
-        const { ban, plugins, toggle, sticker_cmd, shutoff, login } =
-          await personalDB(
-            ["ban", "toggle", "sticker_cmd", "plugins", "shutoff", "login"],
-            { content: {} },
-            "get",
-          );
-        const { version } = (
-          await axios(
-            `https://raw.githubusercontent.com/${config.REPO}/master/package.json`,
-          )
-        ).data;
-        let start_msg = false;
-        let blocked_users = false;
+        const { ban, plugins, toggle, sticker_cmd, shutoff, login } = await personalDB(["ban", "toggle", "sticker_cmd", "plugins", "shutoff", "login"], { content: {} }, "get",);
+        const { version } = (await axios(`https://raw.githubusercontent.com/${config.REPO}/master/package.json`)).data;
+        console.log(userdata)
+        let start_msg = false, blocked_users = false;
         const reactArray = require("./lib/emojis.js");
         console.log(clc.yellow("⬇️ installing plugins..."));
         try {
@@ -1242,14 +1188,13 @@ if (sessionPath){
 
   //======================================================[ SCHEDULER ]===========================================================================
   async function autobio() {
-    if (pers_db.autobio === "true") {
+    if (userdata.autobio === "true") {
         async function updateStatus() {
             const time = moment().tz(config.TZ).format('HH:mm');
             const date = moment().tz(config.TZ).format('DD/MM/YYYY');
             const status = `⏰Time: ${time}\n📅Date: ${date}\n🚀 kiyoshi`;
             await conn.updateProfileStatus(status);
         }
-
         await updateStatus();
         cron.schedule('*/5 * * * *', async () => {
             await updateStatus();
@@ -1259,10 +1204,10 @@ if (sessionPath){
         });
     }
 }
-
 autobio().catch(err => {
     console.error('Error initializing autobio check:', err);
 });
+/*
   async function manageCronJobs() {
     try {
       const {  groupDb } = require("./lib/database/group.js")
@@ -1326,7 +1271,7 @@ function startCronJobScheduler() {
     );
 }
 
-startCronJobScheduler();
+startCronJobScheduler();*/
   //==================================================================================================================================
       }else if (connection === "close") {
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
