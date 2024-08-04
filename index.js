@@ -142,6 +142,7 @@ let store = makeInMemoryStore({
 store.poll_message = {
   message: [],
 };
+
 const ciph3r = async () => {
   if (!config.SESSION_ID) {
     console.log(clc.red("please provide a session id in config.js\nscan from Alpha server"),
@@ -181,8 +182,23 @@ if (sessionPath){
         };
       },
     });
-    store.bind(conn.ev);
+
+    
     conn.ev.on("creds.update", saveCreds);
+    store.bind(conn.ev);
+    const storeFilePath = path.join(__dirname, 'lib', 'store.json');
+    setInterval(() => {    
+      try {
+        store.writeToFile(storeFilePath);
+      } catch (error) {
+        console.error("Error writing to file:", error);
+      }
+      try {
+        store.readFromFile(storeFilePath);
+      } catch (error) {
+        console.error("Error reading from file:", error);
+      }
+    }, 5000);
     if (!conn.wcg) conn.wcg = {};
     async function getMessage(key) {
       if (store) {
@@ -472,7 +488,6 @@ if (sessionPath){
               contents_of_poll[poll_key];
             if (!participates[0]) return;
             const pollCreation = await getMessage(creationMsgKey);
-            console.log(pollCreation,"iiiiiiiiiiiiiiii")
             try {
               if (pollCreation) {
                 const meIdNormalised = jidNormalizedUser(
