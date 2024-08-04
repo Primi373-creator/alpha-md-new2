@@ -705,11 +705,17 @@ if (sessionPath){
             if (ban && ban.includes(m.jid) && !command.root) return;
             let runned = false;
             if (em_ed == "active") em_ed = false;
-            if (MOD === "public" && command.fromMe === true) {
-              return;
-            } else if (MOD ===  "private" && !m.isCreator) {
-              return;
-            }        
+            async function checkAccess(command, m) {
+              const { worktype } = await settingsDB(["worktype"], { id: global.configId }, "get");
+              if (worktype === "public" && command.fromMe === true) {
+                return;
+              } else if (worktype === "private" && !m.isCreator) {
+                return;
+              } else if (!m.isCreator){
+                return
+              }
+            }
+            checkAccess(command, m)
             for (const t in toggle) {
               if (
                 toggle[t].status != "false" &&

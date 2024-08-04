@@ -26,7 +26,6 @@
     "cheerio": "^1.0.0-rc.12",
     "child_process": "^1.0.2",
     "cli-color": "^2.0.4",
-    "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
     "express": "latest",
     "file-type": "^19.4.0",
