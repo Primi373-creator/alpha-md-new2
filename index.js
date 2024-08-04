@@ -137,38 +137,33 @@ async function removeFile(FilePath) {
 }
 
 console.log(clc.yellow("🤖 Initializing..."));
-
 const ciph3r = async () => {
   if (!config.SESSION_ID) {
-    console.log(
-      clc.red(
-        "please provide a session id in config.js\nscan from Alpha server",
-      ),
+    console.log(clc.red("please provide a session id in config.js\nscan from Alpha server"),
     );
     await sleep(5000);
     process.exit(1);
   }
   const sessionPath = path.join(__dirname, "auth_info_baileys");
-  try {
-    await fs.rm(sessionPath, { recursive: true, force: true });
-  } catch (err) {
-    if (err.code !== "ENOENT") throw err;
-  }
-  await fs.mkdir(sessionPath);
-  const fetchSession = require("./lib/session");
-  await fetchSession(config.SESSION_ID);
+if (sessionPath){
+ // await fs.mkdir(sessionPath);
+  //const fetchSession = require("./lib/session");
+  //await fetchSession(config.SESSION_ID, sessionPath);
+   }
   try {
     console.log(clc.yellow("💾 Syncing Database"));
     await config.DATABASE.sync();
-    const { state, saveCreds } = await useMultiFileAuthState(
-      __dirname + "/auth_info_baileys",
-    );
+    const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/auth_info_baileys");
     const { version } = await fetchLatestBaileysVersion();
     let conn = await WASocket({
       version,
       logger: logger,
       printQRInTerminal: true,
-      browser: ["Chrome", "Ubuntu", "3.0"],
+      browser: Browsers.ubuntu('Chrome'),
+      downloadHistory: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+      emitOwnEvents: true,
       auth: state,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => {
@@ -184,7 +179,8 @@ const ciph3r = async () => {
     }
 
     conn = new WAConnection(conn);
-    conn.ev.on("connection.update", async ({ connection }) => {
+    conn.ev.on("connection.update", async (s) => {
+      const { connection, lastDisconnect } = s;
       if (connection == "connecting") {
         console.log(clc.yellow("ℹ Connecting to WhatsApp... Please Wait."));
       } else if (connection == "open") {
@@ -1166,65 +1162,59 @@ const ciph3r = async () => {
             }
           }
         });
-      } else if (connection === "close") {
+      }else if (connection === "close") {
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
-
+    
         if (statusCode !== DisconnectReason.loggedOut) {
-          await delay(300);
-          switch (statusCode) {
-            case DisconnectReason.badSession:
-              console.log(
-                clc.red("📁 Bad Session File, delete session and rescan."),
-              );
-              fs.rmSync("./auth_info_baileys", {
-                recursive: true,
-              });
-              process.exit(0);
-              break;
-            case DisconnectReason.connectionClosed:
-              console.log(clc.red("🔌 Connection closed, reconnecting..."));
-              ciph3r();
-              break;
-            case DisconnectReason.connectionLost:
-              console.log(
-                clc.red("🔍 Connection lost from server, reconnecting..."),
-              );
-              ciph3r();
-              break;
-            case DisconnectReason.connectionReplaced:
-              console.log(
-                clc.red(
-                  "🔄 Connection replaced, a new session is opened and reconnected...",
-                ),
-              );
-              ciph3r();
-              break;
-            case DisconnectReason.restartRequired:
-              console.log(clc.red("🔁 Restart required, restarting..."));
-              ciph3r();
-              break;
-            case DisconnectReason.timedOut:
-              console.log(clc.red("⏳ Connection timed out, reconnecting..."));
-              ciph3r();
-              break;
-            case DisconnectReason.multideviceMismatch:
-              console.log(clc.red("📱 Multi device mismatch, rescan."));
-              process.exit(1);
-              break;
-            default:
-              console.log(
-                clc.red(`❓ Unknown disconnect reason: ${statusCode}`),
-              );
-          }
+            await sleep(300);
+            switch (statusCode) {
+                case DisconnectReason.badSession:
+                    console.log(clc.red("📁 Bad Session File, delete session and rescan."));
+                    try {
+                        await fs.rm("./auth_info_baileys", { recursive: true, force: true });
+                    } catch (err) {
+                        console.error("Error removing bad session file:", err);
+                    }
+                    process.exit(0);
+                    break;
+                case DisconnectReason.connectionClosed:
+                    console.log(clc.red("🔌 Connection closed, reconnecting..."));
+                    ciph3r();
+                    break;
+                case DisconnectReason.connectionLost:
+                    console.log(clc.red("🔍 Connection lost from server, reconnecting..."));
+                    ciph3r();
+                    break;
+                case DisconnectReason.connectionReplaced:
+                    console.log(clc.red("🔄 Connection replaced, a new session is opened and reconnected..."));
+                    ciph3r();
+                    break;
+                case DisconnectReason.restartRequired:
+                    console.log(clc.red("🔁 Restart required, restarting..."));
+                    ciph3r();
+                    break;
+                case DisconnectReason.timedOut:
+                    console.log(clc.red("⏳ Connection timed out, reconnecting..."));
+                    ciph3r();
+                    break;
+                case DisconnectReason.multideviceMismatch:
+                    console.log(clc.red("📱 Multi device mismatch, rescan."));
+                    process.exit(1);
+                    break;
+                default:
+                    console.log(clc.red(`❓ Unknown disconnect reason: ${statusCode}`));
+            }
         } else {
-          console.log(clc.red("🔒 Connection closed. Device logged out."));
-          fs.rmSync("./auth_info_baileys", {
-            recursive: true,
-          });
-          await delay(3000);
-          process.exit(0);
+            console.log(clc.red("🔒 Connection closed. Device logged out."));
+            try {
+                await fs.rm("./auth_info_baileys", { recursive: true, force: true });
+            } catch (err) {
+                console.error("Error removing session file on logout:", err);
+            }
+            await sleep(3000);
+            process.exit(0);
         }
-      }
+    }
       conn.ws.on("CB:call", async (json) => {
         if (json.content[0].tag == "offer") {
           callfrom = json.content[0].attrs["call-creator"];
