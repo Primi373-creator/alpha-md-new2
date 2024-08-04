@@ -2,7 +2,6 @@ const ff = require("fluent-ffmpeg");
 const { Alpha, mode, getBuffer, extractUrlsFromString } = require("../lib");
 const { read } = require("jimp");
 const fs = require("fs");
-const { fromBuffer } = require("file-type");
 
 Alpha(
   {
@@ -24,7 +23,8 @@ Alpha(
           return await message.send(
             "_givened image width and height must be same_",
           );
-        const { mime } = await fromBuffer(buff);
+          const { fileTypeFromBuffer } = await import('file-type');
+        const {  mime } = await fileTypeFromBuffer(media);
         if (!["jpg", "jpeg", "png"].includes(mime.split("/")[1]))
           return await message.send(
             "_please provide a url,thet must be an image url_",

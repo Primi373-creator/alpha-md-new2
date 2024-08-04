@@ -1,5 +1,4 @@
 const { Alpha, mode, sendPhoto, TTS, IMGUR, sendGif, sendBassAudio, sendSlowAudio, sendBlownAudio, sendDeepAudio, sendErrapeAudio, sendFastAudio, sendFatAudio, sendNightcoreAudio, sendReverseAudio, sendSquirrelAudio, toAudio, toPTT, toVideo, AudioMetaData, lang, config } = require('../lib');
-const { fromBuffer } = require('file-type');
 
 Alpha({
     pattern: 'photo ?(.*)',
@@ -164,11 +163,29 @@ Alpha({
     fromMe: mode
 }, async (message, match) => {
     match = (match || "converted media").replace(/[^A-Za-z0-9]/g,'-');
-    if(!message.reply_message.image && !message.reply_message.audio && !message.reply_message.video) return message.reply("_*reply to a video/audio/image message!*_");
-    const media = await message.reply_message.download(),
-    { ext, mime } = await fromBuffer(media);
-    return await message.client.sendMessage(message.jid,{document:media,mimetype:mime,fileName: match+"."+ext},{quoted: message});
+    if (!message.reply_message.image && !message.reply_message.audio && !message.reply_message.video) {
+        return message.reply("_*reply to a video/audio/image message!*_");
+    }
+    try {
+        const media = await message.reply_message.download();
+        const { fileTypeFromBuffer } = await import('file-type');
+        const { ext, mime } = await fileTypeFromBuffer(media);
+        if (!ext || !mime) {
+            return message.reply("_*could not determine file type!*_");
+        }
+        return await message.client.sendMessage(message.jid, {
+            document: media,
+            mimetype: mime,
+            fileName: `${match}.${ext}`
+        }, {
+            quoted: message
+        });
+    } catch (error) {
+        console.error("Error processing media:", error);
+        return message.reply("_*an error occurred while processing the media!*_");
+    }
 });
+
 
 
 Alpha({
