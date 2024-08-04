@@ -48,7 +48,7 @@ module.exports = {
   RMBG_KEY: process.env.RMBG_KEY,
   OPEN_AI: process.env.OPEN_AI,
   ELEVENLABS: process.env.ELEVENLABS,
-  LOGS: process.env.LOGS || false,
+  LOGS: process.env.LOGS || true,
   DATABASE: DB_URL
     ? new Sequelize(DB_URL, {
         dialect: "postgres",

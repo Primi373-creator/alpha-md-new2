@@ -58,6 +58,7 @@ const {
   config,
   parsedJid,
   groupDB,
+  settingsDB,
   personalDB,
   lang
 } = require("./lib/");
@@ -159,6 +160,50 @@ if (sessionPath){
   try {
     console.log(clc.yellow("💾 Syncing Database"));
     await config.DATABASE.sync();
+    const syncSettings = async () => {
+      try {
+        global.configId = `kiyoshi_${config.SUDO.split(',')[0]}@s.whatsapp.net`;
+        let existingSettings = await settingsDB(
+          [
+            'alwaysonline', 'anticall', 'antidelete', 'auto_read_msg', 'auto_read_status', 
+            'auto_save_status', 'autobio', 'autoreaction', 'disablegrp', 'worktype', 
+            'disablepm', 'tempsudo', 'wapresence'
+          ],
+          { id: global.configId },
+          'get'
+        );
+        if (!existingSettings) {
+          console.log(clc.red(`No configuration found for ${global.configId}. Creating a new settings record.`));
+          const defaultSettings = {
+            alwaysonline: "false", anticall: "reject", antidelete: "false", auto_read_msg: "cmd", 
+            auto_read_status: "true", auto_save_status: "false", autobio: "true", autoreaction: "true", 
+            disablegrp: "false", worktype: "private", disablepm: "false", tempsudo: "", wapresence: "false"
+          };
+          await Promise.all(
+            Object.keys(defaultSettings).map(async (key) => {
+              await settingsDB([key], { id: global.configId, content: defaultSettings[key] }, 'set');
+            })
+          );
+          existingSettings = await settingsDB(
+            [
+              'alwaysonline', 'anticall', 'antidelete', 'auto_read_msg', 'auto_read_status', 
+              'auto_save_status', 'autobio', 'autoreaction', 'disablegrp', 'worktype', 
+              'disablepm', 'tempsudo', 'wapresence'
+            ],
+            { id: global.configId },
+            'get'
+          );
+        }
+    
+        global.pers_db = existingSettings;
+        console.log(clc.green(`Settings synchronized for ${global.configId}`));
+      } catch (error) {
+        console.error(clc.red("Could not connect with the database.\nError:"), clc.red(error.message));
+        process.exit(1);
+      }
+    };
+    
+    syncSettings();
     const { state, saveCreds } = await useMultiFileAuthState(__dirname + "/auth_info_baileys");
     const { version } = await fetchLatestBaileysVersion();
     let conn = await WASocket({
@@ -1148,9 +1193,9 @@ if (sessionPath){
               return;
             }
             let forwardTo =
-              config.ANTI_DELETE === "pm"
+              config.ANTI_DELETE === "p"
                 ? conn.user.id
-                : config.ANTI_DELETE === "gc"
+                : config.ANTI_DELETE === "g"
                   ? m.jid
                   : config.ANTI_DELETE;
             try {
@@ -1194,6 +1239,95 @@ if (sessionPath){
             }
           }
         });
+
+  //======================================================[ SCHEDULER ]===========================================================================
+  async function autobio() {
+    if (pers_db.autobio === "true") {
+        async function updateStatus() {
+            const time = moment().tz(config.TZ).format('HH:mm');
+            const date = moment().tz(config.TZ).format('DD/MM/YYYY');
+            const status = `⏰Time: ${time}\n📅Date: ${date}\n🚀 kiyoshi`;
+            await conn.updateProfileStatus(status);
+        }
+
+        await updateStatus();
+        cron.schedule('*/5 * * * *', async () => {
+            await updateStatus();
+        }, {
+            scheduled: true,
+            timezone: config.TZ
+        });
+    }
+}
+
+autobio().catch(err => {
+    console.error('Error initializing autobio check:', err);
+});
+  async function manageCronJobs() {
+    try {
+      const {  groupDb } = require("./lib/database/group.js")
+      const groups = await groupDb.findAll(); // Fetch all groups from the database
+        for (const group of groups) {
+            const { jid, mute, unmute } = group;
+            if (mute && mute !== 'false') {
+                const [hr, min] = mute.split(":");
+                cron.schedule(
+                    `${min} ${hr} * * *`,
+                    async () => {
+                        try {
+                            await conn.groupSettingUpdate(jid, 'announcement');
+                        } catch (error) {
+                            console.error(`Failed to mute group ${jid} on schedule:`, error);
+                        }
+                    },
+                    {
+                        scheduled: true,
+                        timezone: config.TZ
+                    }
+                );
+            }
+            if (unmute && unmute !== 'false') {
+                const [hr, min] = unmute.split(":");
+                cron.schedule(
+                    `${min} ${hr} * * *`,
+                    async () => {
+                        try {
+                            await conn.groupSettingUpdate(jid, 'not_announcement');
+                        } catch (error) {
+                            console.error(`Failed to unmute group ${jid} on schedule:`, error);
+                        }
+                    },
+                    {
+                        scheduled: true,
+                        timezone: config.TZ
+                    }
+                );
+            }
+        }
+    } catch (error) {
+        console.error('Failed to manage cron jobs:', error);
+    }
+}
+
+function startCronJobScheduler() {
+    cron.schedule(
+        '* * * * *',
+        async () => {
+            try {
+                await manageCronJobs();
+            } catch (error) {
+                console.error('Failed to execute cron job scheduler:', error);
+            }
+        },
+        {
+            scheduled: true,
+            timezone: config.TZ
+        }
+    );
+}
+
+startCronJobScheduler();
+  //==================================================================================================================================
       }else if (connection === "close") {
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
     
